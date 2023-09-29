@@ -61,18 +61,34 @@ app.post('/paris/generate', async (req, res) => {
   const nbParis = 10;
 
   try {
-    for (let i = 0; i < nbParis; i++) {
-      const auteur = faker.name.firstName();
-      const cheval = faker.random.number({ min: 1, max: 10 });
-      const date = faker.date.past().toISOString();
+      // Creation de la transaction
+      await db.run(`BEGIN`);
 
-      db.run(`INSERT INTO paris(auteur, cheval, date) VALUES(?, ?, ?)`, [auteur, cheval, date]);
-      console.log(`Nouveau pari de ${auteur} sur le cheval ${cheval} à ${date}`);
-    }
-    res.status(201).send('Created');
+      const insertPromises = [];
+
+      for (let i = 0; i < nbParis; i++) {
+          const auteur = faker.name.firstName();
+          const cheval = faker.random.number({ min: 1, max: 10 });
+          const date = faker.date.past().toISOString();
+
+          const insertPromise = db.run(`INSERT INTO paris(auteur, cheval, date) VALUES(?, ?, ?)`, [auteur, cheval, date]);
+          insertPromises.push(insertPromise);
+
+          console.log(`Nouveau pari de ${auteur} sur le cheval ${cheval} à ${date}`);
+      }
+
+      // Attente des promesses
+      await Promise.all(insertPromises);
+
+      // Commit de la transaction
+      await db.run(`COMMIT`);
+
+      res.status(201).send('Created');
   } catch (e) {
-    res.status(500).send('Internal server error');
-  };
+      // Rollback si erreur
+      await db.run(`ROLLBACK`);
+      res.status(500).send('Internal server error');
+  }
 });
 
 // Suppression d'un pari avec SQLite
