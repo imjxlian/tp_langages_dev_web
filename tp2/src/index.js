@@ -30,7 +30,7 @@ app.get('/', (req, res) => {
 // Récupération de tous les paris avec SQLite
 app.get('/paris', async (req, res) => {
   try {
-    const paris = await db.all(`SELECT * FROM paris ORDER BY date DESC`);
+    const paris = await db.all(`SELECT rowid AS id, * FROM paris ORDER BY date DESC`);
     res.status(200).json(paris);
   } catch (e) {
     res.status(500).send('Internal server error');
